@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hurtlex_utils"
+version = "0.1.0"
+description = "Processamento de dados padronizados para os corpus do Hurtlex brasileiro"
+authors = [
+    { name = "Victor Gabriel", email = "victor.barbosa@dcc.ufmg.br" }
+]
+# These are the exact libraries your script imports. 
+# Pip will install these automatically when someone installs your package.
+dependencies = [
+    "pandas>=2.0.0",
+    "scikit-learn>=1.2.0",
+    "nltk>=3.8.1",
+    "langdetect>=1.0.9"
+]
+
+[project.optional-dependencies]
+# Optional: Allows 'pip install -e .[dev]' to install testing tools
+dev = ["pytest", "jupyter"]
