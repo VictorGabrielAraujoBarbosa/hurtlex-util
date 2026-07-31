@@ -2,6 +2,25 @@ import re
 import pandas as pd
 from langdetect import detect, DetectorFactory
 
+_EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"
+    "\U0001F300-\U0001F5FF"
+    "\U0001F680-\U0001F6FF"
+    "\U0001F1E0-\U0001F1FF"
+    "\U00002500-\U00002BEF"
+    "\U00002702-\U000027B0"
+    "\U000024C2-\U0001F251"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FA6F"
+    "\U0001FA70-\U0001FAFF"
+    "\U0000200D"
+    "\U0000FE0F"
+    "\U00002300-\U000023FF"
+    "\U00002600-\U000026FF"
+    "]+"
+)
+
 # Garante reprodutibilidade científica na detecção de idioma
 DetectorFactory.seed = 42 
 
@@ -131,3 +150,56 @@ def remover_stopwords(texto: str, lista_stopwords: set) -> str:
     palavras = texto.split()
     palavras_filtradas = [p for p in palavras if p.lower() not in lista_stopwords]
     return ' '.join(palavras_filtradas)
+
+def remover_emojis(texto: str) -> str:
+    """
+    Remove todos os emojis do texto.
+
+    Input: 
+        texto (str): Uma string de texto bruto.
+    Output: 
+        str: O texto original com todos os emojis removidos.
+    Transformação: 
+        Aplica uma expressão regular que cobre blocos Unicode de emojis 
+        (incluindo emoticons, pictogramas, bandeiras, símbolos e variações) 
+        e os substitui por espaço vazio.
+    """
+    if not isinstance(texto, str): 
+        raise TypeError(f"Erro: esperava argumento string, recebeu ({type(texto).__name__})")
+    return _EMOJI_PATTERN.sub('', texto)
+
+def limpar_texto(texto: str, lista_stopwords: set | None = None) -> str:
+    """
+    Aplica o pipeline completo de limpeza de texto.
+
+    Input: 
+        texto (str): Uma string de texto bruto.
+        lista_stopwords (set | None): Conjunto opcional de stopwords a remover.
+                                       Se None, a remoção de stopwords é ignorada.
+        idioma (str | None): Código ISO 639-1 do idioma esperado (ex: 'pt').
+                              Se informado, textos em outro idioma retornam
+                              string vazia. Se None, ignora a detecção.
+    Output: 
+        str: Texto limpo e normalizado, ou string vazia se o idioma não
+             corresponder ao esperado.
+    Transformação: 
+        Opcionalmente detecta o idioma e descarta textos que não correspondam.
+        Em seguida aplica, em ordem: remoção de URLs, remoção de emojis,
+        remoção de caracteres especiais (mantendo apenas letras e espaços),
+        conversão para minúsculas, normalização de espaços e, se fornecida
+        uma lista, remoção de stopwords.
+    """
+    if not isinstance(texto, str): 
+        raise TypeError(f"Erro: esperava argumento string, recebeu ({type(texto).__name__})")
+
+
+    texto = remover_urls(texto)
+    texto = remover_emojis(texto)
+    texto = remover_caracteres_especiais(texto)
+    texto = remover_capitalizacao(texto)
+    texto = remover_espacos_extras(texto)
+
+    if lista_stopwords is not None:
+        texto = remover_stopwords(texto, lista_stopwords)
+
+    return texto
