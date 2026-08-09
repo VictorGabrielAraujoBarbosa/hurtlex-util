@@ -149,10 +149,8 @@ def limpar_texto(texto: str) -> str:
     texto = remover_caracteres_especiais(texto)
     texto = remover_capitalizacao(texto)
     texto = remover_espacos_extras(texto)
-
-
-    if lista_stopwords is not None:
-        texto = remover_stopwords(texto, lista_stopwords)
-
+    texto = remover_stopwords(texto)
+    
+       
     return texto
 
