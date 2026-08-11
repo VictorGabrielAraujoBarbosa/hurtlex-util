@@ -27,7 +27,6 @@ _EMOJI_PATTERN = re.compile(
 DetectorFactory.seed = 42 
 
 nltk.download('stopwords')  # type: ignore[attr-defined]
-language = "portuguese"
 
 # ==========================================
 # 1. FUNÇÕES DE FILTRAGEM DE LINHAS (DATAFRAME)
@@ -36,30 +35,22 @@ language = "portuguese"
 def filtrar_por_toxicidade(df: pd.DataFrame, coluna_alvo: str = 'toxic', manter_valor: int = 1) -> pd.DataFrame:
     """
     Filtra o conjunto de dados com base no rótulo de toxicidade.
-    
-    Input:
-        df (pd.DataFrame): O conjunto de dados original.
-        coluna_alvo (str): O nome da coluna que contém os rótulos (padrão: 'toxic').
-        manter_valor (int): O valor da classe a ser mantida (padrão: 1).
-    Output:
-        pd.DataFrame: Um novo DataFrame contendo apenas as linhas que correspondem ao valor desejado.
-    Transformação:
-        Aplica uma máscara booleana estrita onde df[coluna_alvo] == manter_valor.
     """
     return df[df[coluna_alvo] == manter_valor].copy()
 
-def filtrar_por_idioma(texto:str) -> str:
+def filtrar_por_idioma(df: pd.DataFrame, coluna_texto: str, idioma_desejado: str = 'pt') -> pd.DataFrame:
     """
-    Remove textos que não pertencem ao português
-    
-    Transformação:
-        Usa a biblioteca 'langdetect' para inferir o idioma de cada linha. Linhas que não forem detectadas como português ('pt') são descartadas.
+    Filtra o conjunto de dados mantendo apenas as linhas em que o texto
+    pertence ao idioma desejado.
     """
-        
-    if (detect(str(texto)) != 'pt'):
-        return ""
-    else: 
-        return texto
+    def checar_idioma(texto):
+        try:
+            return detect(str(texto)) == idioma_desejado
+        except:
+            return False
+            
+    mascara = df[coluna_texto].apply(checar_idioma)
+    return df[mascara].copy()
     
 
 # ==========================================
@@ -67,65 +58,28 @@ def filtrar_por_idioma(texto:str) -> str:
 # ==========================================
 
 def remover_urls(texto: str) -> str:
-    """
-    Remove links de internet (HTTP/HTTPS e WWW).
-    
-    Transformação: 
-        Aplica a expressão regular r'http[s]?://\\S+|www\\.\\S+' para identificar padrões 
-        de links e apagá-los do texto.
-    """
+    """Remove links de internet (HTTP/HTTPS e WWW)."""
     return re.sub(r'http[s]?://\S+|www\.\S+', '', texto)
 
 def remover_caracteres_especiais(texto: str) -> str:
-    """
-    Remove números, pontuação e símbolos especiais do texto, mantendo 
-    apenas letras (incluindo acentos do português) e espaços.
-    
-    Input: 
-        texto (str): Uma string de texto.
-    Output: 
-        str: O texto contendo apenas as letras permitidas e espaços.
-    Transformação: 
-        Aplica uma expressão regular com uma lista EXPLÍCITA de caracteres 
-        permitidos. Tudo o que não estiver nessa lista será removido.
-    """
+    """Remove números, pontuação e símbolos especiais do texto, mantendo apenas letras."""
     caracteres_permitidos = r'[^a-zA-Z\sáéíóúÁÉÍÓÚâêîôûÂÊÎÔÛãõÃÕçÇ]'
-    
     return re.sub(caracteres_permitidos, '', texto)
 
 def remover_letras_repetidas(texto: str) -> str:
-    """
-    Reduz sequências de uma mesma letra (ou caractere) que aparece mais de 2 
-    vezes seguidas para apenas 2 ocorrências (ex: "kkkkk" vira "kk", "noooossa" vira "noossa").
-    
-    Input:
-        texto (str): Uma string de texto.
-    Output:
-        str: Texto com as repetições sequenciais limitadas a dois caracteres.
-    Transformação:
-        Aplica a expressão regular r'(.)\\1{2,}' e substitui pelo grupo capturado
-        repetido duas vezes r'\\1\\1'.
-    """
+    """Reduz sequências de uma mesma letra para apenas 2 ocorrências."""
     return re.sub(r'(.)\1{2,}', r'\1\1', texto)
 
 def remover_capitalizacao(texto: str) -> str:
     return texto.lower()
 
 def remover_espacos_extras(texto: str) -> str:
-    """
-    Normaliza o espaçamento do texto.
-    
-    Input: 
-        texto (str): Uma string de texto.
-    Output: 
-        str: Texto com espaçamento padronizado, sem espaços nas extremidades.
-    Transformação: 
-        Substitui blocos de 2 ou mais espaços em branco (\\s{2,}) por exatamente 
-        um espaço único (' '), e aplica .strip() para limpar o início e fim da string.
-    """
+    """Normaliza o espaçamento do texto."""
     return re.sub(r'\s{2,}', ' ', texto).strip()
 
 def remover_stopwords(texto: str, lista_stopwords: set[str] | None = None) -> str:
+    if not isinstance(texto, str):
+        raise TypeError(f"Esperado tipo 'str', recebido '{type(texto).__name__}'")
 
     if lista_stopwords is None:
         lista_stopwords = set(stopwords.words('portuguese'))  # type: ignore[attr-defined]
@@ -136,36 +90,27 @@ def remover_stopwords(texto: str, lista_stopwords: set[str] | None = None) -> st
 def remover_emojis(texto: str) -> str:
     return _EMOJI_PATTERN.sub('', texto)
 
-def limpar_texto(texto: str) -> str:
+def limpar_texto(texto: str, lista_stopwords: set[str] | None = None, idioma: str | None = None) -> str:
     """
     Aplica o pipeline completo de limpeza de texto.
-
-    Input: 
-        texto (str): Uma string de texto bruto.
-        lista_stopwords (set | None): Conjunto opcional de stopwords a remover.
-                                       Se None, a remoção de stopwords é ignorada.
-        idioma (str | None): Código ISO 639-1 do idioma esperado (ex: 'pt').
-                              Se informado, textos em outro idioma retornam
-                              string vazia. Se None, ignora a detecção.
-    Output: 
-        str: Texto limpo e normalizado, ou string vazia se o idioma não
-             corresponder ao esperado.
-    Transformação: 
-        Opcionalmente detecta o idioma e descarta textos que não correspondam.
-        Em seguida aplica, em ordem: remoção de URLs, remoção de emojis,
-        remoção de caracteres especiais, limitação de letras repetidas,
-        conversão para minúsculas, normalização de espaços e, se fornecida
-        uma lista, remoção de stopwords.
     """
+    if not isinstance(texto, str):
+        raise TypeError(f"Esperado tipo 'str', recebido '{type(texto).__name__}'")
+
+    # Verifica o idioma antes de aplicar as transformações
+    if idioma:
+        try:
+            if detect(texto) != idioma:
+                return ""
+        except:
+            return ""
 
     texto = remover_urls(texto)
     texto = remover_emojis(texto)
-    texto = filtrar_por_idioma(texto)
     texto = remover_caracteres_especiais(texto)
-    texto = remover_capitalizacao(texto)
     texto = remover_letras_repetidas(texto)
+    texto = remover_capitalizacao(texto)
     texto = remover_espacos_extras(texto)
-    texto = remover_stopwords(texto)
-    
+    texto = remover_stopwords(texto, lista_stopwords)
         
     return texto
