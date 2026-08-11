@@ -93,6 +93,21 @@ def remover_caracteres_especiais(texto: str) -> str:
     
     return re.sub(caracteres_permitidos, '', texto)
 
+def remover_letras_repetidas(texto: str) -> str:
+    """
+    Reduz sequências de uma mesma letra (ou caractere) que aparece mais de 2 
+    vezes seguidas para apenas 2 ocorrências (ex: "kkkkk" vira "kk", "noooossa" vira "noossa").
+    
+    Input:
+        texto (str): Uma string de texto.
+    Output:
+        str: Texto com as repetições sequenciais limitadas a dois caracteres.
+    Transformação:
+        Aplica a expressão regular r'(.)\\1{2,}' e substitui pelo grupo capturado
+        repetido duas vezes r'\\1\\1'.
+    """
+    return re.sub(r'(.)\1{2,}', r'\1\1', texto)
+
 def remover_capitalizacao(texto: str) -> str:
     return texto.lower()
 
@@ -138,19 +153,19 @@ def limpar_texto(texto: str) -> str:
     Transformação: 
         Opcionalmente detecta o idioma e descarta textos que não correspondam.
         Em seguida aplica, em ordem: remoção de URLs, remoção de emojis,
-        remoção de caracteres especiais (mantendo apenas letras e espaços),
+        remoção de caracteres especiais, limitação de letras repetidas,
         conversão para minúsculas, normalização de espaços e, se fornecida
         uma lista, remoção de stopwords.
     """
 
     texto = remover_urls(texto)
     texto = remover_emojis(texto)
-    texto= filtrar_por_idioma(texto)
+    texto = filtrar_por_idioma(texto)
     texto = remover_caracteres_especiais(texto)
     texto = remover_capitalizacao(texto)
+    texto = remover_letras_repetidas(texto)
     texto = remover_espacos_extras(texto)
     texto = remover_stopwords(texto)
     
-       
+        
     return texto
-
