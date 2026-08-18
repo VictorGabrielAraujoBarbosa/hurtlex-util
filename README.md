@@ -121,3 +121,36 @@ Para rodar a suíte completa de verificação científica:
 ```bash
 pytest -vv
 ```
+## Analysis
+
+The analysis functions expect cleaned text. Documents are tokenized explicitly
+with `str.split()`, so spaces separate terms and cleaning is a separate step.
+
+The calculation is composed of four inspectable stages:
+
+```text
+text -> TF -> IDF -> TF-IDF -> differential score
+```
+
+`calcular_tf` supports these TF formulas:
+
+- `raw`: term occurrence count.
+- `relative`: occurrence count divided by the full cleaned-document token
+  length (the default), including tokens removed by vocabulary limits.
+- `log`: `1 + log(count)` for terms that occur.
+- `binary`: one for presence, zero for absence.
+
+`calcular_idf` supports:
+
+- `reciprocal`: `N / df`.
+- `log`: `log(N / df)` (the default).
+- `smooth_log`: `log((N + 1) / (df + 1)) + 1`.
+
+Use `max_terms` when an upper bound on vocabulary size is needed. It defaults to
+`None`, meaning that all terms meeting `min_df` are retained. Terms are chosen
+by corpus frequency with alphabetical tie-breaking.
+
+Empty documents are retained as zero rows in the TF and TF-IDF matrices, but a
+warning is issued and they are excluded from IDF and differential statistics.
+This preserves row alignment without allowing documents containing no
+analyzable terms to affect the scores.
