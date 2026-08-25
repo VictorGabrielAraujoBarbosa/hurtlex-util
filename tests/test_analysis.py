@@ -2,7 +2,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from hurtlex_util.analysis import calcular_idf, calcular_tf, calcular_tf_idf, calcular_tfidf_diferencial
+from hurtlex_util.analysis import (
+    calcular_delta_tf,
+    calcular_delta_tfidf,
+    calcular_idf,
+    calcular_tf,
+    calcular_tf_idf,
+    calcular_tfidf_diferencial,
+)
 
 
 @pytest.fixture
@@ -109,6 +116,19 @@ def test_delta_uses_dataframe_rows_and_sorts_target_terms(documents):
 
     assert [term for term, _ in scores] == ["alpha", "gamma", "beta"]
     assert scores[0][1] > 0
+    assert scores[-1][1] < 0
+
+
+def test_calcular_delta_tf_orders_terms_by_target_prevalence(documents):
+    tf = calcular_tf(documents, "text", min_df=1, metodo="raw")
+
+    scores = calcular_delta_tf(tf, [1, 0, 0])
+
+    # Target rows are 10 and 20; background row is 40.
+    assert [term for term, _ in scores] == ["alpha", "beta", "gamma"]
+    assert scores[0][0] == "alpha"
+    assert scores[0][1] > 0
+    assert scores[-1][0] == "gamma"
     assert scores[-1][1] < 0
 
 

@@ -187,6 +187,26 @@ def calcular_delta_tfidf(
     return sorted(delta.items(), key=lambda item: item[1], reverse=True)
 
 
+def calcular_delta_tf(
+    tf: pd.DataFrame, classes: pd.Series | np.ndarray
+) -> List[Tuple[str, float]]:
+    """Rank terms by target mean TF minus background mean TF."""
+    class_values = np.asarray(classes)
+    if len(class_values) != len(tf):
+        raise ValueError("classes must have one value for every TF row")
+    if not np.isin(class_values, [0, 1]).all():
+        raise ValueError("classes must contain only 0 and 1 labels")
+
+    non_empty = _non_empty_rows(tf).to_numpy()
+    target = tf.iloc[non_empty & (class_values == 1)]
+    background = tf.iloc[non_empty & (class_values == 0)]
+    if target.empty or background.empty:
+        raise ValueError("Both classes must contain at least one non-empty document")
+
+    delta = target.mean(axis=0) - background.mean(axis=0)
+    return sorted(delta.items(), key=lambda item: item[1], reverse=True)
+
+
 def calcular_tfidf_diferencial(
     df: pd.DataFrame,
     texto_col: str = "clean_text",
